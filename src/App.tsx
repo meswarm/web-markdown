@@ -6,7 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { Editor, type EditorHandle } from './components/Editor';
 import { MediaPreview } from './components/MediaPreview';
 import { Navbar } from './components/Navbar';
-import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, type MediaType } from './utils/fs';
+import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, ensureTrailingEmptyLines, type MediaType } from './utils/fs';
 
 // Keys for IndexedDB persistence
 const IDB_ACTIVE_FILE_HANDLE = 'atheneum-active-file-handle';
@@ -56,10 +56,15 @@ function App() {
           const perm = await savedFileHandle.queryPermission({ mode: 'readwrite' });
           if (perm === 'granted') {
             try {
-              const text = await readFileText(savedFileHandle);
+              const rawText = await readFileText(savedFileHandle);
+              const text = ensureTrailingEmptyLines(rawText);
               setActivePath(savedPath);
               setActiveFileHandle(savedFileHandle);
               setFileContent(text);
+              // 如果补了空行，自动回写文件
+              if (text !== rawText) {
+                writeFileText(savedFileHandle, text);
+              }
             } catch (e) {
               console.warn('Failed to restore text file:', e);
             }
@@ -108,10 +113,15 @@ function App() {
       localStorage.setItem(LS_MEDIA_TYPE, 'audio');
     } else {
       try {
-        const text = await readFileText(handle);
+        const rawText = await readFileText(handle);
+        const text = ensureTrailingEmptyLines(rawText);
         setActivePath(path);
         setActiveFileHandle(handle);
         setFileContent(text);
+        // 如果补了空行，自动回写文件
+        if (text !== rawText) {
+          writeFileText(handle, text);
+        }
         // 源码模式下也需要同步更新 sourceContent
         if (viewMode === 'source') {
           setSourceContent(text);
@@ -130,7 +140,7 @@ function App() {
   const handleEditorChange = useCallback(
     debounce((markdown: string, handle: FileSystemFileHandle | null) => {
       if (handle) {
-        writeFileText(handle, markdown);
+        writeFileText(handle, ensureTrailingEmptyLines(markdown));
       }
     }, 1000),
     []

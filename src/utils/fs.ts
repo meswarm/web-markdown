@@ -81,6 +81,33 @@ export async function writeFileText(fileHandle: FileSystemFileHandle, contents: 
   }
 }
 
+/**
+ * Ensure the text ends with at least `minLines` empty lines.
+ * If the content is empty (new file), we don't add trailing lines.
+ * Only appends newlines when the tail doesn't already have enough.
+ */
+const MIN_TRAILING_LINES = 5;
+
+export function ensureTrailingEmptyLines(text: string): string {
+  // Don't touch truly empty content
+  if (!text || text.trim().length === 0) return text;
+
+  // Count trailing newlines
+  let trailingNewlines = 0;
+  for (let i = text.length - 1; i >= 0; i--) {
+    if (text[i] === '\n') {
+      trailingNewlines++;
+    } else {
+      break;
+    }
+  }
+
+  if (trailingNewlines >= MIN_TRAILING_LINES) return text;
+
+  const needed = MIN_TRAILING_LINES - trailingNewlines;
+  return text + '\n'.repeat(needed);
+}
+
 export async function copyDirectory(srcHandle: FileSystemDirectoryHandle, destHandle: FileSystemDirectoryHandle): Promise<void> {
   // @ts-ignore
   for await (const entry of srcHandle.values()) {

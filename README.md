@@ -1,73 +1,89 @@
-# React + TypeScript + Vite
+![构建状态](https://img.shields.io/github/actions/workflow/status/OWNER/REPO/ci.yml?branch=main&label=构建状态)
+![最新版本](https://img.shields.io/github/v/release/OWNER/REPO?label=最新版本)
+![许可证](https://img.shields.io/github/license/OWNER/REPO?label=许可证)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+[![语言-中文](https://img.shields.io/badge/语言-中文-red)](README.md)
+[![Language-English](https://img.shields.io/badge/Language-English-blue)](README_EN.md)
 
-Currently, two official plugins are available:
+# Web Markdown Editor
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+> 具有本地文件系统和多媒体支持的所见即所得 Markdown 编辑器
 
-## React Compiler
+这是一个基于 React 和 Milkdown 构建的现代 Markdown 编辑器，支持完整的所见即所得编辑体验、本地媒体预览（图片与视频），并利用 File System Access API 实现直接读取和保存本地文件。
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## 技术栈
 
-## Expanding the ESLint configuration
+| 类别 | 技术 |
+|------|------|
+| 语言 | TypeScript |
+| 框架 | React, Vite |
+| Markdown 引擎 | Milkdown |
+| 存储 & API | IndexedDB (idb-keyval), File System Access API |
+| 样式 | Tailwind CSS |
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## 快速开始
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+### 前置要求
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- Node.js >= 18
+- npm / pnpm / yarn
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 安装
+
+```bash
+git clone https://github.com/meswarm/web-markdown.git
+cd REPO
+npm install
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 配置
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+暂无特定的环境变量要求。如果将来需要，可以参考下面的方式：
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# cp .env.example .env
 ```
+
+### 本地运行
+
+```bash
+npm run dev
+```
+
+## 项目结构
+
+```
+.
+├── src/
+│   ├── components/       # React 组件 (包括编辑器、侧边栏、工具栏)
+│   ├── plugins/          # Milkdown 插件扩展 (如媒体插件等)
+│   ├── App.tsx           # 应用入口及布局
+│   └── ...
+├── public/               # 静态资源
+└── index.html            # Html 模板
+```
+
+## 使用方法
+
+启动后即可在浏览器中体验 Markdown 编辑功能：
+
+1. 使用左侧边栏管理文件。
+2. 在编辑器中输入 Markdown 内容并实时预览。
+3. 利用工具栏进行快捷操作和文件保存。
+
+```bash
+npm run build   # 构建生产环境
+npm run preview # 预览生产环境构建
+```
+
+## 贡献指南
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feat/your-feature`)
+3. 提交更改 (`git commit -m 'feat: add your feature'`)
+4. 推送分支 (`git push origin feat/your-feature`)
+5. 发起 Pull Request
+
+## 许可证
+
+MIT — 详见 [LICENSE](LICENSE)。

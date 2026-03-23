@@ -124,3 +124,10 @@
 .milkdown .milkdown-block-handle .operation-item:first-child {
   display: none;
 }
+
+/* ===== 当前行高亮 ===== */
+.milkdown .ProseMirror .active-line {
+  background-color: rgba(145, 150, 40, 0.15);
+  border-radius: 4px;
+  transition: background-color 0.05s ease;
+}

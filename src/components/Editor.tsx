@@ -1,6 +1,8 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Crepe, CrepeFeature } from '@milkdown/crepe';
 import { mediaNodePlugins, setMediaResolver } from '../plugins/mediaPlugin';
+import { activeLinePlugin } from '../plugins/activeLinePlugin';
+import { trailingLinesPlugin } from '../plugins/trailingLinesPlugin';
 import { replaceAll } from '@milkdown/kit/utils';
 import { remarkPreserveEmptyLinePlugin } from '@milkdown/kit/preset/commonmark';
 
@@ -99,6 +101,8 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
     });
 
     crepe.editor.use(mediaNodePlugins);
+    crepe.editor.use(activeLinePlugin);
+    crepe.editor.use(trailingLinesPlugin);
 
     // 移除「保留空行」插件，避免空段落被序列化为 <br />
     crepe.editor.remove(remarkPreserveEmptyLinePlugin);

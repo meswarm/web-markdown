@@ -1,0 +1,126 @@
+/* Milkdown 编辑器样式覆盖 — 必须在主题 CSS 之后导入 */
+.milkdown .ProseMirror {
+  padding: 20px 20px 20px 55px;
+}
+
+.milkdown .ProseMirror h1 {
+  font-size: 28px;
+  line-height: 40px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  font-weight: 600;
+  color: rgb(107, 189, 69);
+}
+
+.milkdown .ProseMirror h2 {
+  font-size: 20px;
+  line-height: 32px;
+  margin-top: 4px;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: rgb(206, 198, 47);
+}
+
+.milkdown .ProseMirror h3 {
+  font-size: 17px;
+  line-height: 25px;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  font-weight: 500;
+  color: rgb(81, 169, 228);
+}
+
+.milkdown .ProseMirror h4 {
+  font-size: 15px;
+  line-height: 18px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  font-weight: 400;
+}
+
+.milkdown .ProseMirror h5 {
+  font-size: 15px;
+  line-height: 18px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  font-weight: 400;
+}
+
+.milkdown .ProseMirror h6 {
+  font-size: 15px;
+  line-height: 18px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+  font-weight: 400;
+}
+
+.milkdown .ProseMirror p {
+  font-size: 15px;
+  line-height: 18px;
+  margin-top: 1px;
+  margin-bottom: 1px;
+}
+
+.milkdown .milkdown-code-block {
+  padding: 4px 10px 10px;
+}
+
+
+
+.milkdown .milkdown-image-block {
+  /* 去除固定 max-height 和 overflow: hidden，避免裁剪掉图片下方的 caption（标注文字）或操作栏 */
+  text-align: left;
+}
+
+/* 覆盖默认的 margin: 0 auto 实现靠左对齐 */
+.milkdown .milkdown-image-block>.image-wrapper {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+.milkdown .milkdown-image-block>.image-wrapper img {
+  /* 限制最大高度 500px，最大宽度不超过编辑区 */
+  max-height: 400px;
+  max-width: 100%;
+
+  /* 重置宽高为 auto，让浏览器保持图片的原始纵横比 */
+  width: auto;
+  height: auto;
+
+  /* 如果原始图片不够 100px，保持正常的 object-fit 行为 */
+  object-fit: contain;
+}
+
+/* ===== 视频块样式 ===== */
+.milkdown .milkdown-video-block {
+  text-align: left;
+}
+
+.milkdown .milkdown-video-block video {
+  /* 限制最大高度 400px，与图像保持一致；宽度随高度等比缩放 */
+  max-height: 500px;
+  max-width: 100%;
+
+  /* 重置宽高为 auto，让浏览器保持视频的原始纵横比 */
+  width: auto;
+  height: auto;
+
+  border-radius: 8px;
+  outline: none;
+  object-fit: contain;
+}
+
+.milkdown {
+  --crepe-color-background: #202024;
+  --crepe-color-selected: #533030;
+  --crepe-color-hover: #533030;
+}
+
+.milkdown .milkdown-code-block {
+  background-color: #292a29;
+}
+
+/* 隐藏行前的加号 (+) 按钮，只保留六点拖拽按钮 */
+.milkdown .milkdown-block-handle .operation-item:first-child {
+  display: none;
+}

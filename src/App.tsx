@@ -7,6 +7,9 @@ import { Editor, type EditorHandle } from './components/Editor';
 import { MediaPreview } from './components/MediaPreview';
 import { Navbar } from './components/Navbar';
 import { ImageLightbox } from './components/ImageLightbox';
+import { NoteToolbar } from './components/NoteToolbar';
+import { SearchResults } from './components/SearchResults';
+import { queryNote, subscribeQueryProgress, type RelatedNote } from './utils/notesysApi';
 import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, ensureTrailingEmptyLines, type MediaType } from './utils/fs';
 
 // Keys for IndexedDB persistence
@@ -27,6 +30,7 @@ function App() {
   const [isRestoring, setIsRestoring] = useState(true);
   const [viewMode, setViewMode] = useState<'rendered' | 'source'>('rendered');
   const [sourceContent, setSourceContent] = useState<string>('');
+  const [editorRevision, setEditorRevision] = useState(0);
 
   // Ref to the editor for inserting markdown content
   const editorHandleRef = useRef<EditorHandle>(null);
@@ -45,6 +49,15 @@ function App() {
     setLightboxSrc(src);
     setLightboxAlt(alt);
   }, []);
+
+  // --- Search state ---
+  const [searchResults, setSearchResults] = useState<RelatedNote[] | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+
+  // --- Right panel preview state ---
+  const [previewNotePath, setPreviewNotePath] = useState<string | null>(null);
+  const [previewFileHandle, setPreviewFileHandle] = useState<FileSystemFileHandle | null>(null);
+  const [previewFileContent, setPreviewFileContent] = useState<string>('');
 
   // Persist layout across page reloads
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -260,6 +273,127 @@ function App() {
     }
   }, [activePath, viewMode, insertAtSourceCursor]);
 
+  // --- NoteToolbar: replace editor content ---
+  const handleContentReplace = useCallback((newContent: string) => {
+    const content = ensureTrailingEmptyLines(newContent);
+    setFileContent(content);
+    if (activeFileHandle) {
+      writeFileText(activeFileHandle, content);
+    }
+  }, [activeFileHandle]);
+
+  // --- NoteToolbar: navigate to classified file path ---
+  const handleNavigateToFile = useCallback(async (notePath: string) => {
+    if (!rootHandleRef.current) return;
+
+    try {
+      // notePath 格式如 "notes/技术/Linux/解压命令.md" 或 "技术/Linux/解压命令.md"
+      // 去掉可能的 vault 根目录前缀
+      const rootName = rootHandleRef.current.name;
+      let segments = notePath.split('/').filter(Boolean);
+      if (segments[0] === rootName) {
+        segments = segments.slice(1);
+      }
+
+      // 通过 File System Access API 逐级导航到目标文件
+      let dirHandle = rootHandleRef.current;
+      for (let i = 0; i < segments.length - 1; i++) {
+        dirHandle = await dirHandle.getDirectoryHandle(segments[i]);
+      }
+      const fileHandle = await dirHandle.getFileHandle(segments[segments.length - 1]);
+      const relativePath = '/' + segments.join('/');
+
+      // 通过已有的 handleFileSelect 打开文件
+      await handleFileSelect(fileHandle, relativePath);
+    } catch (e) {
+      console.error('Failed to navigate to classified file:', e);
+      alert(`无法打开分类后的文件: ${notePath}`);
+    }
+  }, [handleFileSelect]);
+
+  // --- Search handler ---
+  const handleSearch = useCallback(async (query: string) => {
+    if (isSearching) return;
+    setIsSearching(true);
+    try {
+      const taskId = await queryNote({
+        query,
+        top_k: 10,
+        enable_rewrite: false,
+        enable_synthesis: false,
+      });
+
+      subscribeQueryProgress(taskId, {
+        onResult: (data) => {
+          setIsSearching(false);
+          if (data.success && data.related_notes) {
+            setSearchResults(data.related_notes);
+          } else {
+            setSearchResults([]);
+          }
+        },
+        onError: (data) => {
+          setIsSearching(false);
+          alert(`搜索失败: ${data.error}`);
+        },
+      });
+    } catch (err) {
+      setIsSearching(false);
+      alert(`搜索请求失败: ${err instanceof Error ? err.message : '未知错误'}`);
+    }
+  }, [isSearching]);
+
+  // --- Search result: open note in right panel ---
+  const handleSelectNote = useCallback(async (notePath: string) => {
+    if (!rootHandleRef.current) return;
+
+    // 同文件检测：如果和中间编辑器打开的是同一个文件
+    const rootName = rootHandleRef.current.name;
+    let segments = notePath.split('/').filter(Boolean);
+    if (segments[0] === rootName) {
+      segments = segments.slice(1);
+    }
+    const relativePath = '/' + segments.join('/');
+
+    if (relativePath === activePath) {
+      alert('该文件已在编辑器中打开');
+      return;
+    }
+
+    try {
+      let dirHandle = rootHandleRef.current;
+      for (let i = 0; i < segments.length - 1; i++) {
+        dirHandle = await dirHandle.getDirectoryHandle(segments[i]);
+      }
+      const fileHandle = await dirHandle.getFileHandle(segments[segments.length - 1]);
+      const rawText = await readFileText(fileHandle);
+      const text = ensureTrailingEmptyLines(rawText);
+
+      setPreviewNotePath(relativePath);
+      setPreviewFileHandle(fileHandle);
+      setPreviewFileContent(text);
+    } catch (e) {
+      console.error('Failed to open preview file:', e);
+      alert(`无法打开文件: ${notePath}`);
+    }
+  }, [activePath]);
+
+  const handleClosePreview = useCallback(() => {
+    setPreviewNotePath(null);
+    setPreviewFileHandle(null);
+    setPreviewFileContent('');
+  }, []);
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const handlePreviewChange = useCallback(
+    debounce((markdown: string, handle: FileSystemFileHandle | null) => {
+      if (handle) {
+        writeFileText(handle, ensureTrailingEmptyLines(markdown));
+      }
+    }, 1000),
+    []
+  );
+
   // --- Sidebar "Insert to editor" handler ---
   const handleInsertMedia = useCallback((handle: FileSystemFileHandle) => {
     const mType = detectMediaType(handle.name);
@@ -382,6 +516,8 @@ function App() {
         currentFolderPath={currentFolderPath}
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
+        onSearch={handleSearch}
+        isSearching={isSearching}
       />
 
       {/* Main content */}
@@ -439,6 +575,77 @@ function App() {
                     );
                   })() : 'Select a file to edit'}
                 </div>
+                {/* 文档操作按钮组 */}
+                {activePath && activeFileHandle && (
+                  <div className="flex items-center gap-1 mr-6">
+                    {/* 复制文档内容 */}
+                    <button
+                      className="p-1.5 rounded-md text-secondary/50 hover:text-on-surface hover:bg-surface-container-highest/60 transition-all shrink-0"
+                      title="复制文档内容"
+                      onClick={() => {
+                        navigator.clipboard.writeText(fileContent).then(() => {
+                          const btn = document.activeElement as HTMLElement;
+                          btn?.blur();
+                        });
+                      }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                      </svg>
+                    </button>
+
+                    {/* 删除文档内容 */}
+                    <button
+                      className="p-1.5 rounded-md text-secondary/50 hover:text-red-400 hover:bg-red-500/10 transition-all shrink-0"
+                      title="清空文档内容"
+                      onClick={() => {
+                        if (!confirm('确定要清空文档内容吗？')) return;
+                        const empty = ensureTrailingEmptyLines('');
+                        setFileContent(empty);
+                        writeFileText(activeFileHandle, empty);
+                        if (viewMode === 'source') {
+                          setSourceContent(empty);
+                        }
+                        setEditorRevision(r => r + 1);
+                      }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                    </button>
+
+                    {/* 刷新文件 */}
+                    <button
+                      className="p-1.5 rounded-md text-secondary/50 hover:text-on-surface hover:bg-surface-container-highest/60 transition-all shrink-0"
+                      title="刷新文件"
+                      onClick={async () => {
+                        if (!activeFileHandle) return;
+                        try {
+                          const rawText = await readFileText(activeFileHandle);
+                          const text = ensureTrailingEmptyLines(rawText);
+                          setFileContent(text);
+                          if (viewMode === 'source') {
+                            setSourceContent(text);
+                          }
+                          setEditorRevision(r => r + 1);
+                        } catch (e) {
+                          console.error('Failed to reload file:', e);
+                        }
+                      }}
+                    >
+                      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                {/* NoteToolbar — 悬浮操作按钮 */}
+                <NoteToolbar
+                  activePath={activePath}
+                  fileContent={fileContent}
+                  onContentReplace={handleContentReplace}
+                  onNavigateToFile={handleNavigateToFile}
+                />
               </header>
 
               <div className="flex-1 overflow-y-auto px-1 py-1">
@@ -461,7 +668,7 @@ function App() {
                   ) : (
                     <Editor
                       ref={editorHandleRef}
-                      key={activePath + '-' + viewMode}
+                      key={activePath + '-' + viewMode + '-' + editorRevision}
                       initialContent={fileContent}
                       rootHandle={vaultRootHandle}
                       onImageDoubleClick={handleImageDoubleClick}
@@ -478,13 +685,51 @@ function App() {
 
           <Separator className="w-[3px] bg-outline-variant/15 hover:bg-primary/50 transition-colors cursor-col-resize active:bg-primary z-10" />
 
-          {/* MEDIA PREVIEW PANEL */}
+          {/* RIGHT PANEL: dynamic preview or media */}
           <Panel id="media-preview" defaultSize="30%" minSize="12%" maxSize="45%">
-            <MediaPreview handle={activeMediaHandle} type={mediaType} />
+            {previewNotePath ? (
+              <aside className="h-full bg-surface-container-low flex flex-col overflow-hidden">
+                <div className="preview-panel-header">
+                  <span className="preview-panel-path" title={previewNotePath}>{previewNotePath}</span>
+                  <button
+                    className="preview-panel-close"
+                    onClick={handleClosePreview}
+                    title="关闭预览"
+                  >
+                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="flex-1 overflow-y-auto px-1 py-1">
+                  <Editor
+                    key={'preview-' + previewNotePath}
+                    initialContent={previewFileContent}
+                    rootHandle={vaultRootHandle}
+                    onImageDoubleClick={handleImageDoubleClick}
+                    onChange={(md) => {
+                      setPreviewFileContent(md);
+                      handlePreviewChange(md, previewFileHandle);
+                    }}
+                  />
+                </div>
+              </aside>
+            ) : (
+              <MediaPreview handle={activeMediaHandle} type={mediaType} />
+            )}
           </Panel>
 
         </Group>
       </div>
+
+      {/* Search results popup */}
+      {searchResults && (
+        <SearchResults
+          results={searchResults}
+          onSelectNote={handleSelectNote}
+          onClose={() => setSearchResults(null)}
+        />
+      )}
 
       {/* Image Lightbox — rendered at top level for proper z-index stacking */}
       {lightboxSrc && (

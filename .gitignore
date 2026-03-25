@@ -59,3 +59,8 @@ lerna-debug.log*
 # === Coverage ===
 coverage/
 .nyc_output/
+
+
+notesys-api.md
+run_organize.py
+run_query.py

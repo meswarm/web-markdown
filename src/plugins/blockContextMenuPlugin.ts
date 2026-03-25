@@ -57,12 +57,36 @@ function findBlockFromDom(
   }
   if (!blockDom) return null;
 
-  // 第二步：找到这个 DOM 元素在 editorDom.children 中的索引
+  // 第二步：尝试用 posAtDOM 精确获取位置
+  try {
+    const pos = view.posAtDOM(blockDom, 0);
+    const resolved = view.state.doc.resolve(pos);
+    // 找到顶层节点（depth 1 = doc 的直接子节点）
+    const depth = Math.min(resolved.depth, 1);
+    const from = resolved.before(depth || 1);
+    const to = resolved.after(depth || 1);
+    return { from, to, dom: blockDom };
+  } catch {
+    // posAtDOM 可能在某些 NodeView（如 CodeMirror）中失败，回退到索引匹配
+  }
+
+  // 第三步（回退）：过滤掉 Milkdown 注入的非文档节点，用过滤后的索引匹配
   const children = Array.from(editorDom.children) as HTMLElement[];
-  const index = children.indexOf(blockDom);
+  const docChildren = children.filter((el) => {
+    // 排除 Milkdown 框架元素（如拖拽手柄、工具栏等）
+    const cls = el.className || '';
+    if (cls.includes('milkdown-block-handle')) return false;
+    if (cls.includes('ProseMirror-separator')) return false;
+    if (cls.includes('ProseMirror-trailingBreak')) return false;
+    if (el.getAttribute('data-milkdown-overlay') !== null) return false;
+    // contenteditable=false 的独立框架元素通常不是文档节点
+    // 但 NodeView 也可能是 contenteditable=false，所以不能用这个来过滤
+    return true;
+  });
+  const index = docChildren.indexOf(blockDom);
   if (index === -1) return null;
 
-  // 第三步：遍历文档顶层节点，通过索引匹配位置
+  // 第四步：遍历文档顶层节点，通过过滤后的索引匹配位置
   const doc = view.state.doc;
   let pos = 0;
   for (let i = 0; i < doc.childCount; i++) {

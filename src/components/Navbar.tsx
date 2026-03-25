@@ -5,28 +5,53 @@ type NavbarProps = {
   currentFolderPath: string | null;
   viewMode: 'rendered' | 'source';
   onToggleViewMode: () => void;
+  onSearch: (query: string) => void;
+  isSearching: boolean;
 };
 
-export const Navbar: React.FC<NavbarProps> = ({ onOpenFolder, currentFolderPath, viewMode, onToggleViewMode }) => {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
+export const Navbar: React.FC<NavbarProps> = ({
+  onOpenFolder,
+  currentFolderPath,
+  viewMode,
+  onToggleViewMode,
+  onSearch,
+  isSearching,
+}) => {
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isSearchOpen) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
-    }
-  }, [isSearchOpen]);
-
   const handleSearchKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
     if (e.key === 'Escape') {
-      setIsSearchOpen(false);
       setSearchQuery('');
+      searchInputRef.current?.blur();
     }
   };
 
+  const handleSearchClick = () => {
+    if (searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    } else {
+      searchInputRef.current?.focus();
+    }
+  };
+
+  // Ctrl+K / Cmd+K to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <nav className="h-11 bg-surface-container-low border-b border-outline-variant/12 flex items-center px-4 shrink-0 select-none z-20 gap-1.5">
+    <nav className="h-11 bg-surface-container-low border-b border-outline-variant/70 flex items-center px-4 shrink-0 select-none z-20 gap-1.5">
 
       {/* === Left group === */}
 
@@ -86,41 +111,50 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenFolder, currentFolderPath,
       {/* === Spacer === */}
       <div className="flex-1" />
 
-      {/* === Right group: Search only === */}
-      {isSearchOpen ? (
-        <div className="flex items-center gap-1.5 bg-surface-container-highest/60 rounded-lg px-2.5 py-1 border border-outline-variant/15">
-          <svg className="w-3.5 h-3.5 text-secondary/60 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+      {/* === Right group: Search button + input === */}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={handleSearchClick}
+          disabled={isSearching}
+          className="p-1.5 rounded-md text-secondary/70 hover:text-on-surface hover:bg-surface-container-highest/60 transition-all shrink-0"
+          title="搜索笔记 (Ctrl+K)"
+        >
+          {isSearching ? (
+            <span className="navbar-search-spinner" />
+          ) : (
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          )}
+        </button>
+
+        <div className="relative flex items-center">
           <input
             ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearchKeyDown}
-            placeholder="搜索文件..."
-            className="bg-transparent text-[13px] text-on-surface outline-none w-40 placeholder:text-secondary/30 font-sans"
+            placeholder="搜索笔记..."
+            disabled={isSearching}
+            className="bg-surface-container-highest/40 text-[13px] text-on-surface outline-none w-134 placeholder:text-secondary/30 font-sans pl-2.5 pr-7 py-1 rounded-md border border-outline-variant/15 focus:border-primary/40 transition-colors"
           />
-          <button
-            onClick={() => { setIsSearchOpen(false); setSearchQuery(''); }}
-            className="text-secondary/50 hover:text-on-surface transition-colors"
-          >
-            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                searchInputRef.current?.focus();
+              }}
+              className="absolute right-1.5 p-0.5 rounded text-secondary/40 hover:text-on-surface hover:bg-surface-container-highest/60 transition-colors"
+              title="清除"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
         </div>
-      ) : (
-        <button
-          onClick={() => setIsSearchOpen(true)}
-          className="p-1.5 rounded-md text-secondary/70 hover:text-on-surface hover:bg-surface-container-highest/60 transition-all shrink-0"
-          title="搜索"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </button>
-      )}
+      </div>
     </nav>
   );
 };

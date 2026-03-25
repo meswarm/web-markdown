@@ -45,7 +45,7 @@ const FileTreeEntry: React.FC<{
     <li>
       <div
         style={{ paddingLeft: `${(level * 12) + 8}px` }}
-        className={`flex items-center gap-2 py-0.5 px-2 text-[13px] rounded transition-colors cursor-pointer group ${
+        className={`flex items-center gap-2 py-0.5 px-2 text-[15px] rounded transition-colors cursor-pointer group ${
           isActive
             ? 'bg-primary/10 text-primary font-medium border-l-2 border-primary'
             : 'text-on-surface/80 hover:bg-surface-container-highest border-l-2 border-transparent hover:text-on-surface'
@@ -448,6 +448,21 @@ export const Sidebar: React.FC<SidebarProps> = ({ onFileSelect, activePath, onRo
                   <div className="mx-2 my-1 border-t border-amber-500/20" />
                 </>
               )}
+              {/* Copy relative path */}
+              <button
+                className="w-full text-left px-4 py-2 text-amber-200 hover:bg-amber-500/20 transition-colors flex items-center gap-2.5"
+                onClick={() => {
+                  if (contextMenu.entry && rootHandle) {
+                    const relPath = rootHandle.name + contextMenu.entry.path;
+                    navigator.clipboard.writeText(relPath);
+                  }
+                  setContextMenu(null);
+                }}
+              >
+                <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+                复制路径
+              </button>
+              <div className="mx-2 my-1 border-t border-amber-500/20" />
               <button className="w-full text-left px-4 py-2 text-amber-200 hover:bg-amber-500/20 transition-colors flex items-center gap-2.5" onClick={openRenameModal}>
                 <svg className="w-3.5 h-3.5 text-amber-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                 重命名

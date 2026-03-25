@@ -1,9 +1,14 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Crepe, CrepeFeature } from '@milkdown/crepe';
+import { dracula,cobalt } from 'thememirror';
 import { mediaNodePlugins, setMediaResolver } from '../plugins/mediaPlugin';
 import { activeLinePlugin } from '../plugins/activeLinePlugin';
 import { trailingLinesPlugin } from '../plugins/trailingLinesPlugin';
-import { replaceAll } from '@milkdown/kit/utils';
+import { imageLightboxPlugin, setImageDblClickHandler } from '../plugins/imageLightboxPlugin';
+import { insertLinePlugin } from '../plugins/insertLinePlugin';
+import { blockContextMenuPlugin } from '../plugins/blockContextMenuPlugin';
+import { applyImageBlockSchemaOverride } from '../plugins/imageBlockOverride';
+import { editorViewCtx, parserCtx } from '@milkdown/core';
 import { remarkPreserveEmptyLinePlugin } from '@milkdown/kit/preset/commonmark';
 
 import '@milkdown/crepe/theme/common/style.css';
@@ -18,6 +23,7 @@ export interface EditorProps {
   initialContent: string;
   onChange: (markdown: string) => void;
   rootHandle?: FileSystemDirectoryHandle | null;
+  onImageDoubleClick?: (src: string, alt: string) => void;
 }
 
 /**
@@ -42,7 +48,7 @@ async function resolveRelativeSrc(
   }
 }
 
-export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, onChange, rootHandle }, ref) => {
+export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, onChange, rootHandle, onImageDoubleClick }, ref) => {
   const editorRef = useRef<HTMLDivElement>(null);
   const crepeRef = useRef<Crepe | null>(null);
   const contentRef = useRef<string>(initialContent);
@@ -51,11 +57,31 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
   useImperativeHandle(ref, () => ({
     insertMarkdown: (text: string) => {
       if (crepeRef.current) {
-        // Append text to the end of the current content
-        const newContent = contentRef.current.trimEnd() + '\n\n' + text + '\n';
-        crepeRef.current.editor.action(replaceAll(newContent));
-        contentRef.current = newContent;
-        onChange(newContent);
+        // Use ProseMirror transaction API to insert at cursor position
+        // with proper node types (ImageBlock, etc.) from Milkdown's parser
+        crepeRef.current.editor.action((ctx) => {
+          const view = ctx.get(editorViewCtx);
+          const parser = ctx.get(parserCtx);
+          const doc = parser(text);
+          if (!doc || !doc.content.childCount) return;
+
+          const { state } = view;
+          const { $from } = state.selection;
+
+          // Find the end of the current top-level block (depth 1 = direct child of doc)
+          let insertPos: number;
+          if ($from.depth > 0) {
+            insertPos = $from.end(1) + 1;
+          } else {
+            insertPos = state.doc.content.size;
+          }
+
+          // Clamp to valid document range
+          insertPos = Math.min(insertPos, state.doc.content.size);
+
+          const tr = state.tr.insert(insertPos, doc.content);
+          view.dispatch(tr.scrollIntoView());
+        });
       }
     },
   }));
@@ -82,6 +108,9 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
       root: editorRef.current,
       defaultValue: initialContent,
       featureConfigs: {
+        [CrepeFeature.CodeMirror]: {
+          theme: cobalt,
+        },
         [CrepeFeature.ImageBlock]: {
           proxyDomURL: (url: string) => {
             // Skip already-resolved or absolute URLs
@@ -100,9 +129,15 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
       },
     });
 
+    // Override image-block schema: alt stores semantic text, ratio in title
+    crepe.editor.config(applyImageBlockSchemaOverride);
+
     crepe.editor.use(mediaNodePlugins);
     crepe.editor.use(activeLinePlugin);
     crepe.editor.use(trailingLinesPlugin);
+    crepe.editor.use(imageLightboxPlugin);
+    crepe.editor.use(insertLinePlugin);
+    crepe.editor.use(blockContextMenuPlugin);
 
     // 移除「保留空行」插件，避免空段落被序列化为 <br />
     crepe.editor.remove(remarkPreserveEmptyLinePlugin);
@@ -114,11 +149,15 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
       });
     });
 
+    // Set the image double-click handler
+    setImageDblClickHandler(onImageDoubleClick || null);
+
     crepe.create().then(() => {
       crepeRef.current = crepe;
     });
 
     return () => {
+      setImageDblClickHandler(null);
       setMediaResolver(null);
       crepe.destroy().catch(() => {});
       crepeRef.current = null;

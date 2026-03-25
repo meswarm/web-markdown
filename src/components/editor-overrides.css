@@ -1,6 +1,6 @@
 /* Milkdown 编辑器样式覆盖 — 必须在主题 CSS 之后导入 */
 .milkdown .ProseMirror {
-  padding: 20px 20px 20px 55px;
+  padding: 10px 10px 20px 20px;
 }
 
 .milkdown .ProseMirror h1 {
@@ -9,7 +9,7 @@
   margin-top: 4px;
   margin-bottom: 4px;
   font-weight: 600;
-  color: rgb(107, 189, 69);
+  color: rgb(171, 221, 20);
 }
 
 .milkdown .ProseMirror h2 {
@@ -18,7 +18,7 @@
   margin-top: 4px;
   margin-bottom: 4px;
   font-weight: 500;
-  color: rgb(206, 198, 47);
+  color: rgb(171, 221, 20);
 }
 
 .milkdown .ProseMirror h3 {
@@ -27,12 +27,12 @@
   margin-top: 2px;
   margin-bottom: 2px;
   font-weight: 500;
-  color: rgb(81, 169, 228);
+  color: rgb(171, 221, 20);
 }
 
 .milkdown .ProseMirror h4 {
   font-size: 15px;
-  line-height: 18px;
+  line-height: 19px;
   margin-top: 1px;
   margin-bottom: 1px;
   font-weight: 400;
@@ -40,7 +40,7 @@
 
 .milkdown .ProseMirror h5 {
   font-size: 15px;
-  line-height: 18px;
+  line-height: 19px;
   margin-top: 1px;
   margin-bottom: 1px;
   font-weight: 400;
@@ -48,7 +48,7 @@
 
 .milkdown .ProseMirror h6 {
   font-size: 15px;
-  line-height: 18px;
+  line-height: 19px;
   margin-top: 1px;
   margin-bottom: 1px;
   font-weight: 400;
@@ -56,13 +56,72 @@
 
 .milkdown .ProseMirror p {
   font-size: 15px;
-  line-height: 18px;
+  line-height: 19px;
   margin-top: 1px;
   margin-bottom: 1px;
 }
 
+/* ===== 代码块简化样式 ===== */
 .milkdown .milkdown-code-block {
-  padding: 4px 10px 10px;
+  padding: 4px 0 0;
+  border: none !important;
+  outline: none !important;
+  box-shadow: none !important;
+  border-radius: 6px;
+  position: relative;
+}
+
+/* 隐藏选中状态的边框 */
+.milkdown .milkdown-code-block.selected {
+  outline: none !important;
+}
+
+/* 隐藏语言按钮（但保留 language-picker 的弹窗功能，以防需要） */
+.milkdown .milkdown-code-block .tools .language-button {
+  display: none !important;
+}
+
+/* 让 .tools 容器不占空间，但保留 copy 按钮浮动 */
+.milkdown .milkdown-code-block .tools {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 让按钮组可交互 */
+.milkdown .milkdown-code-block .tools .tools-button-group {
+  pointer-events: auto;
+}
+
+/* 复制按钮：无边框、透明背景、悬停时显示 */
+.milkdown .milkdown-code-block .tools .tools-button-group button {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  color: rgba(255, 255, 255, 0.45);
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.milkdown .milkdown-code-block .tools .tools-button-group button:hover {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.18) !important;
+}
+
+/* 悬停代码块时显示复制按钮 */
+.milkdown .milkdown-code-block:hover .tools-button-group > button {
+  opacity: 1;
+}
+
+/* 隐藏行号 */
+.milkdown .milkdown-code-block .cm-gutters {
+  display: none !important;
 }
 
 
@@ -89,6 +148,11 @@
 
   /* 如果原始图片不够 100px，保持正常的 object-fit 行为 */
   object-fit: contain;
+
+  /* 圆角 + 浅色边框 */
+  border-radius: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
 }
 
 /* ===== 视频块样式 ===== */
@@ -111,23 +175,135 @@
 }
 
 .milkdown {
-  --crepe-color-background: #202024;
-  --crepe-color-selected: #533030;
+  --crepe-color-background: #272728;
+  --crepe-color-selected: #13496c;
   --crepe-color-hover: #533030;
+  --crepe-color-inline-code: #d3ddcf;
 }
 
 .milkdown .milkdown-code-block {
-  background-color: #292a29;
+  background-color: #272728;
 }
 
-/* 隐藏行前的加号 (+) 按钮，只保留六点拖拽按钮 */
-.milkdown .milkdown-block-handle .operation-item:first-child {
-  display: none;
+/* 完全隐藏六点拖拽按钮 */
+.milkdown .milkdown-block-handle {
+  display: none !important;
 }
 
 /* ===== 当前行高亮 ===== */
 .milkdown .ProseMirror .active-line {
-  background-color: rgba(145, 150, 40, 0.15);
+  /* background-color: rgba(145, 150, 40, 0.05); */
   border-radius: 4px;
   transition: background-color 0.05s ease;
+}
+
+.milkdown .ProseMirror a {
+  color: rgb(121, 198, 234);
+  font-weight: 400;
+}
+
+/* ===== 加粗文本浅绿色背景高亮 ===== */
+.milkdown .ProseMirror strong {
+  /* background-color: rgba(19, 141, 137, 0.15); */
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+/* ===== 编辑器内图片双击提示 ===== */
+.milkdown .ProseMirror img {
+  cursor: zoom-in;
+}
+
+/* ===== 图片灯箱（Lightbox） ===== */
+.image-lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.82);
+  backdrop-filter: blur(8px);
+  cursor: zoom-out;
+  animation: lightbox-fade-in 0.2s ease;
+}
+
+.image-lightbox-img {
+  max-width: 92vw;
+  max-height: 92vh;
+  object-fit: contain;
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+  cursor: zoom-out;
+  animation: lightbox-zoom-in 0.25s ease;
+}
+
+@keyframes lightbox-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes lightbox-zoom-in {
+  from {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.bg-surface-container-low {
+  background-color: #282828;
+}
+
+:root, :host {
+  --color-surface: #1e1d1d;
+}
+
+/* ===== 右键块删除菜单 ===== */
+.block-context-menu {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  background: #2e2a2a;
+  border: 1px solid rgba(183, 99, 99, 0.52);
+  border-radius: 10px;
+  padding: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  min-width: 120px;
+}
+
+.block-ctx-item {
+  display: block;
+  width: 100%;
+  padding: 6px 14px;
+  background: none;
+  border: none;
+  color: #e0e0e0;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.block-ctx-item:hover {
+  background: rgba(255, 80, 80, 0.2);
+  color: #ff6b6b;
+}
+
+/* 右键目标块高亮 */
+.block-ctx-highlight {
+  background-color: rgba(202, 108, 94, 0.12) !important;
+  outline: 1px solid rgba(255, 70, 70, 0.35);
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
 }

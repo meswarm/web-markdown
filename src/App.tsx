@@ -6,6 +6,7 @@ import { Sidebar } from './components/Sidebar';
 import { Editor, type EditorHandle } from './components/Editor';
 import { MediaPreview } from './components/MediaPreview';
 import { Navbar } from './components/Navbar';
+import { ImageLightbox } from './components/ImageLightbox';
 import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, ensureTrailingEmptyLines, type MediaType } from './utils/fs';
 
 // Keys for IndexedDB persistence
@@ -29,10 +30,21 @@ function App() {
 
   // Ref to the editor for inserting markdown content
   const editorHandleRef = useRef<EditorHandle>(null);
+  // Ref to the source-mode textarea for cursor-position insertion
+  const sourceTextareaRef = useRef<HTMLTextAreaElement>(null);
   // Ref to the root vault directory handle (for non-reactive use)
   const rootHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
   // State for vault root handle (for reactive prop passing to Editor)
   const [vaultRootHandle, setVaultRootHandle] = useState<FileSystemDirectoryHandle | null>(null);
+
+  // Lightbox state for double-click image zoom
+  const [lightboxSrc, setLightboxSrc] = useState<string | null>(null);
+  const [lightboxAlt, setLightboxAlt] = useState<string>('');
+
+  const handleImageDoubleClick = useCallback((src: string, alt: string) => {
+    setLightboxSrc(src);
+    setLightboxAlt(alt);
+  }, []);
 
   // Persist layout across page reloads
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -177,6 +189,37 @@ function App() {
     });
   }, [fileContent, sourceContent, activeFileHandle]);
 
+  // --- Helper: insert text at cursor position in source-mode textarea ---
+  const insertAtSourceCursor = useCallback((mdRef: string) => {
+    const ta = sourceTextareaRef.current;
+    if (ta) {
+      const start = ta.selectionStart;
+      const end = ta.selectionEnd;
+      const before = sourceContent.slice(0, start);
+      const after = sourceContent.slice(end);
+      const insertion = '\n\n' + mdRef + '\n';
+      const newContent = before + insertion + after;
+      setSourceContent(newContent);
+      if (activeFileHandle) {
+        writeFileText(activeFileHandle, newContent);
+      }
+      // Restore cursor after the inserted text
+      requestAnimationFrame(() => {
+        const newPos = start + insertion.length;
+        ta.selectionStart = newPos;
+        ta.selectionEnd = newPos;
+        ta.focus();
+      });
+    } else {
+      // Fallback: append to end
+      const newContent = sourceContent.trimEnd() + '\n\n' + mdRef + '\n';
+      setSourceContent(newContent);
+      if (activeFileHandle) {
+        writeFileText(activeFileHandle, newContent);
+      }
+    }
+  }, [sourceContent, activeFileHandle]);
+
   // --- Insert media into editor: copy to classified dir + insert markdown ---
   const insertMediaMarkdown = useCallback(async (
     source: FileSystemFileHandle | File,
@@ -205,12 +248,8 @@ function App() {
 
       // Insert into editor
       if (viewMode === 'source') {
-        // Source mode: append directly
-        const newContent = sourceContent.trimEnd() + '\n\n' + mdRef + '\n';
-        setSourceContent(newContent);
-        if (activeFileHandle) {
-          writeFileText(activeFileHandle, newContent);
-        }
+        // Source mode: insert at cursor position
+        insertAtSourceCursor(mdRef);
       } else {
         // Rendered mode: use editor handle
         editorHandleRef.current?.insertMarkdown(mdRef);
@@ -219,7 +258,7 @@ function App() {
       console.error('Failed to insert media:', e);
       alert('插入媒体失败，请确保有文件写入权限。');
     }
-  }, [activePath, viewMode, sourceContent, activeFileHandle]);
+  }, [activePath, viewMode, insertAtSourceCursor]);
 
   // --- Sidebar "Insert to editor" handler ---
   const handleInsertMedia = useCallback((handle: FileSystemFileHandle) => {
@@ -319,17 +358,13 @@ function App() {
         const safeAlt = fileName.replace(/[\[\]]/g, '\\$&');
         const mdRef = `![${safeAlt}](<${text}>)`;
         if (viewMode === 'source') {
-          const newContent = sourceContent.trimEnd() + '\n\n' + mdRef + '\n';
-          setSourceContent(newContent);
-          if (activeFileHandle) {
-            writeFileText(activeFileHandle, newContent);
-          }
+          insertAtSourceCursor(mdRef);
         } else {
           editorHandleRef.current?.insertMarkdown(mdRef);
         }
       }
     });
-  }, [insertMediaMarkdown, viewMode, sourceContent, activeFileHandle]);
+  }, [insertMediaMarkdown, viewMode, insertAtSourceCursor]);
 
   if (isRestoring) {
     return (
@@ -380,7 +415,29 @@ function App() {
             >
               <header className="border-b border-outline-variant/10 flex items-center px-1 py-2 shrink-0">
                 <div className="flex-1 text-sm text-secondary truncate leading-none">
-                  {activePath ? '/' + activePath.split('/').pop() : 'Select a file to edit'}
+                  {activePath ? (() => {
+                    const fullPath = (currentFolderPath || '') + activePath;
+                    const segments = fullPath.split('/');
+                    const fileName = segments.pop() || '';
+                    return (
+                      <>
+                        {segments.map((seg, i) => (
+                          <span key={i}>
+                            <span>{seg}</span>
+                            <span style={{
+                              backgroundColor: 'rgba(251, 191, 36, 0.4)',
+                              color: 'rgba(251, 191, 36, 0.7)',
+                              borderRadius: '3px',
+                              padding: '1px 3px',
+                              margin: '0 1px',
+                              fontSize: '0.9em',
+                            }}>/</span>
+                          </span>
+                        ))}
+                        <span style={{ color: '#e2e8f0', fontWeight: 600 }}>{fileName}</span>
+                      </>
+                    );
+                  })() : 'Select a file to edit'}
                 </div>
               </header>
 
@@ -392,6 +449,7 @@ function App() {
                     </div>
                   ) : viewMode === 'source' ? (
                     <textarea
+                      ref={sourceTextareaRef}
                       className="w-full h-full bg-[#202024] text-on-surface font-mono text-sm p-4 outline-none resize-none"
                       value={sourceContent}
                       onChange={(e) => {
@@ -406,6 +464,7 @@ function App() {
                       key={activePath + '-' + viewMode}
                       initialContent={fileContent}
                       rootHandle={vaultRootHandle}
+                      onImageDoubleClick={handleImageDoubleClick}
                       onChange={(md) => {
                         setFileContent(md);
                         handleEditorChange(md, activeFileHandle);
@@ -426,6 +485,15 @@ function App() {
 
         </Group>
       </div>
+
+      {/* Image Lightbox — rendered at top level for proper z-index stacking */}
+      {lightboxSrc && (
+        <ImageLightbox
+          src={lightboxSrc}
+          alt={lightboxAlt}
+          onClose={() => setLightboxSrc(null)}
+        />
+      )}
     </div>
   );
 }

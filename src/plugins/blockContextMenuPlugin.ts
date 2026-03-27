@@ -1,5 +1,5 @@
 /**
- * 右键菜单插件：在编辑器中右键点击时显示"删除该块"选项
+ * 右键菜单插件：在编辑器中右键点击时显示"删除该块"和"剪切该块"选项
  * 支持删除段落行、图片块、代码块、视频块等任何顶层节点
  *
  * 使用原生 DOM 事件监听（捕获阶段），并通过 DOM 子节点索引
@@ -19,7 +19,7 @@ function getOrCreateMenu(): HTMLDivElement {
   if (menuEl) return menuEl;
   menuEl = document.createElement('div');
   menuEl.className = 'block-context-menu';
-  menuEl.innerHTML = `<button class="block-ctx-item block-ctx-delete">删除该块</button>`;
+  menuEl.innerHTML = `<button class="block-ctx-item block-ctx-delete">删除该块</button><button class="block-ctx-item block-ctx-cut">剪切该块</button>`;
   document.body.appendChild(menuEl);
   return menuEl;
 }
@@ -27,6 +27,7 @@ function getOrCreateMenu(): HTMLDivElement {
 function clearHighlight() {
   if (highlightedEl) {
     highlightedEl.classList.remove('block-ctx-highlight');
+    highlightedEl.classList.remove('block-ctx-highlight-cut');
     highlightedEl = null;
   }
 }
@@ -149,6 +150,38 @@ export const blockContextMenuPlugin = $prose(() => {
           const tr = editorView.state.tr.delete(block.from, block.to);
           editorView.dispatch(tr);
           editorView.focus();
+          hideMenu();
+        }, { once: true });
+
+        // 剪切按钮：复制文本到剪贴板后删除块
+        const cutBtn = menu.querySelector('.block-ctx-cut') as HTMLButtonElement;
+        const newCutBtn = cutBtn.cloneNode(true) as HTMLButtonElement;
+        cutBtn.replaceWith(newCutBtn);
+
+        newCutBtn.addEventListener('click', () => {
+          // 获取块的文本内容
+          const slice = editorView.state.doc.slice(block.from, block.to);
+          const textContent = slice.content.textBetween(0, slice.content.size, '\n', '\n');
+
+          // 复制到剪贴板
+          navigator.clipboard.writeText(textContent).then(() => {
+            // 切换为绿色高亮，短暂闪烁后删除
+            if (highlightedEl) {
+              highlightedEl.classList.remove('block-ctx-highlight');
+              highlightedEl.classList.add('block-ctx-highlight-cut');
+            }
+            setTimeout(() => {
+              const tr = editorView.state.tr.delete(block.from, block.to);
+              editorView.dispatch(tr);
+              editorView.focus();
+              clearHighlight();
+            }, 180);
+          }).catch(() => {
+            // 剪贴板写入失败时回退：直接删除
+            const tr = editorView.state.tr.delete(block.from, block.to);
+            editorView.dispatch(tr);
+            editorView.focus();
+          });
           hideMenu();
         }, { once: true });
 

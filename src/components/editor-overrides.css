@@ -181,14 +181,15 @@
 }
 
 .milkdown {
-  --crepe-color-background: #272728;
+  --crepe-color-background: #2d2d31;
   --crepe-color-selected: #13496c;
   --crepe-color-hover: #533030;
   --crepe-color-inline-code: #d3ddcf;
+  /* box-shadow: 20px 2px 5px rgba(164, 87, 87, 0.3); */
 }
 
 .milkdown .milkdown-code-block {
-  background-color: #272728;
+  background-color: #2d2d31;
 }
 
 /* 完全隐藏六点拖拽按钮 */
@@ -301,15 +302,28 @@
   white-space: nowrap;
 }
 
-.block-ctx-item:hover {
+.block-ctx-delete:hover {
   background: rgba(255, 80, 80, 0.2);
   color: #ff6b6b;
 }
 
-/* 右键目标块高亮 */
+.block-ctx-cut:hover {
+  background: rgba(80, 200, 120, 0.2);
+  color: #50c878;
+}
+
+/* 右键目标块高亮（删除 - 红色） */
 .block-ctx-highlight {
   background-color: rgba(202, 108, 94, 0.12) !important;
   outline: 1px solid rgba(255, 70, 70, 0.35);
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+/* 右键目标块高亮（剪切 - 绿色） */
+.block-ctx-highlight-cut {
+  background-color: rgba(80, 200, 120, 0.12) !important;
+  outline: 1px solid rgba(80, 200, 120, 0.4);
   border-radius: 4px;
   transition: background-color 0.15s ease;
 }

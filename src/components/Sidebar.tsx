@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { get, set } from 'idb-keyval';
 import { pickDirectory, readDirectoryRecursive, renameEntry, detectMediaType, type FSEntry } from '../utils/fs';
 import { FileIcon, FolderIcon } from './FileIcon';
@@ -10,6 +10,8 @@ type SidebarProps = {
   onOpenFolder: () => void;
   onRootHandleChange: (handle: FileSystemDirectoryHandle | null) => void;
   onInsertMedia?: (handle: FileSystemFileHandle) => void;
+  onSearch: (query: string) => void;
+  isSearching: boolean;
 };
 
 type ContextMenuState = {
@@ -113,7 +115,7 @@ const FileTree: React.FC<{
   );
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onFileSelect, activePath, onRootHandleChange, onInsertMedia }) => {
+export const Sidebar: React.FC<SidebarProps> = ({ onFileSelect, activePath, onRootHandleChange, onInsertMedia, onSearch, isSearching }) => {
   const [tree, setTree] = useState<FSEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [rootHandle, setRootHandle] = useState<FileSystemDirectoryHandle | null>(null);
@@ -373,8 +375,42 @@ export const Sidebar: React.FC<SidebarProps> = ({ onFileSelect, activePath, onRo
     setContextMenu(null);
   };
 
+  // --- Search state in sidebar ---
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const handleSearchKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
+    if (e.key === 'Escape') {
+      setSearchQuery('');
+      searchInputRef.current?.blur();
+    }
+  }, [searchQuery, onSearch]);
+
+  const handleSearchClick = useCallback(() => {
+    if (searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    } else {
+      searchInputRef.current?.focus();
+    }
+  }, [searchQuery, onSearch]);
+
+  // Ctrl+K / Cmd+K to focus search
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, []);
+
   return (
-    <aside className="h-full bg-surface-container-low border-r border-outline-variant/15 flex flex-col py-1 overflow-y-auto relative">
+    <aside className="h-full bg-surface-container-low border-r border-outline-variant/15 flex flex-col py-1 relative">
       
       {/* Restore access prompt (only when needed) */}
       {needsPermission && (
@@ -404,6 +440,50 @@ export const Sidebar: React.FC<SidebarProps> = ({ onFileSelect, activePath, onRo
           <FileTree entries={tree} onFileSelect={onFileSelect} activePath={activePath} onContextMenu={handleContextMenu} expandedPaths={expandedPaths} onToggleExpand={handleToggleExpand} />
         )}
       </nav>
+
+      {/* === Bottom search bar === */}
+      <div className="sidebar-search-bar">
+        <div className="sidebar-search-input-wrap">
+          <button
+            onClick={handleSearchClick}
+            disabled={isSearching}
+            className="sidebar-search-icon-btn"
+            title="搜索笔记 (Ctrl+K)"
+          >
+            {isSearching ? (
+              <span className="navbar-search-spinner" />
+            ) : (
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            )}
+          </button>
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            placeholder="搜索笔记... (Ctrl+K)"
+            disabled={isSearching}
+            className="sidebar-search-input"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                searchInputRef.current?.focus();
+              }}
+              className="sidebar-search-clear-btn"
+              title="清除"
+            >
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* Context Menu overlay */}
       {contextMenu && (

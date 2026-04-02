@@ -7,6 +7,7 @@ import { trailingLinesPlugin } from '../plugins/trailingLinesPlugin';
 import { imageLightboxPlugin, setImageDblClickHandler } from '../plugins/imageLightboxPlugin';
 import { insertLinePlugin } from '../plugins/insertLinePlugin';
 import { blockContextMenuPlugin } from '../plugins/blockContextMenuPlugin';
+import { codeBlockCollapsePlugin } from '../plugins/codeBlockCollapsePlugin';
 import { applyImageBlockSchemaOverride } from '../plugins/imageBlockOverride';
 import { editorViewCtx, parserCtx } from '@milkdown/core';
 import { remarkPreserveEmptyLinePlugin } from '@milkdown/kit/preset/commonmark';
@@ -138,6 +139,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
     crepe.editor.use(imageLightboxPlugin);
     crepe.editor.use(insertLinePlugin);
     crepe.editor.use(blockContextMenuPlugin);
+    crepe.editor.use(codeBlockCollapsePlugin);
 
     // 移除「保留空行」插件，避免空段落被序列化为 <br />
     crepe.editor.remove(remarkPreserveEmptyLinePlugin);

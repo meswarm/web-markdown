@@ -174,7 +174,17 @@ export function generateTimestampedName(originalName: string): string {
   const now = new Date();
   const pad = (n: number) => String(n).padStart(2, '0');
   const stamp = `${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
-  return `${stamp}_${originalName}`;
+  const uuid = crypto.randomUUID();
+
+  // 分离文件名和扩展名，将 UUID 插入扩展名之前
+  const dotIndex = originalName.lastIndexOf('.');
+  if (dotIndex === -1) {
+    // 无扩展名
+    return `${stamp}_${originalName}_${uuid}`;
+  }
+  const baseName = originalName.slice(0, dotIndex);
+  const ext = originalName.slice(dotIndex); // 包含 "."
+  return `${stamp}_${baseName}_${uuid}${ext}`;
 }
 
 /**

@@ -516,8 +516,6 @@ function App() {
         currentFolderPath={currentFolderPath}
         viewMode={viewMode}
         onToggleViewMode={handleToggleViewMode}
-        onSearch={handleSearch}
-        isSearching={isSearching}
       />
 
       {/* Main content */}
@@ -536,6 +534,8 @@ function App() {
               onOpenFolder={handleOpenFolder}
               onRootHandleChange={handleRootHandleChange}
               onInsertMedia={handleInsertMedia}
+              onSearch={handleSearch}
+              isSearching={isSearching}
             />
           </Panel>
 

@@ -1,18 +1,24 @@
 /**
- * NoteSys API 服务层
- * 封装笔记整理 API 调用和 SSE 流式进度监听
+ * NoteSys + ragData API 服务层
+ * - notesys: 笔记整理 API（端口 48002）
+ * - ragdata: 向量检索 API（端口 48001）
  */
 
-const API_BASE = 'http://localhost:8000';
+const NOTESYS_BASE = 'http://localhost:48002';
+const RAGDATA_BASE = 'http://localhost:48001';
+
+// ======== Organize API (notesys) ========
 
 // ---- 请求/响应类型 ----
 
 export interface OrganizeParams {
   markdown_content: string;
+  notes_root_path?: string | null;
+  images_dir?: string | null;
   enable_image_semantic?: boolean | null;
   enable_note_format?: boolean | null;
   enable_classify_and_save?: boolean | null;
-  enable_embedding?: boolean | null;
+  add_date_stamp?: boolean;
 }
 
 interface OrganizeTaskResponse {
@@ -35,7 +41,6 @@ export interface OrganizeResult {
   category?: string;
   subcategory?: string;
   title?: string;
-  chunks?: number;
   token_summary?: Record<string, unknown>;
 }
 
@@ -55,9 +60,10 @@ export interface SSECallbacks {
 const STEP_LABELS: Record<string, string> = {
   image_semantic: '提取语义',
   note_format: '整理笔记',
+  note_classify: '分类存储',
   classify_save: '分类存储',
   classify_and_save: '分类存储',
-  embedding: '向量嵌入',
+  file_save: '保存文件',
 };
 
 export function getStepLabel(step: string): string {
@@ -70,7 +76,7 @@ export function getStepLabel(step: string): string {
  * 提交笔记整理任务
  */
 export async function organizeNote(params: OrganizeParams): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/organize`, {
+  const res = await fetch(`${NOTESYS_BASE}/api/organize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -93,7 +99,7 @@ export function subscribeOrganizeProgress(
   taskId: string,
   callbacks: SSECallbacks,
 ): () => void {
-  const url = `${API_BASE}/api/organize/${taskId}/stream`;
+  const url = `${NOTESYS_BASE}/api/organize/${taskId}/stream`;
   const eventSource = new EventSource(url);
 
   eventSource.addEventListener('progress', (e) => {
@@ -127,102 +133,69 @@ export function subscribeOrganizeProgress(
   return () => eventSource.close();
 }
 
-// ======== Query API ========
+// ======== Search API (ragdata) ========
 
-export interface QueryParams {
-  query: string;
+export interface RagdataSearchParams {
+  q: string;
+  collections?: string[];
   top_k?: number;
-  enable_rewrite?: boolean | null;
-  enable_synthesis?: boolean | null;
 }
 
+export interface RagdataFileResult {
+  file: string;
+  collection: string;
+  max_score: number;
+  chunk_count: number;
+}
+
+export interface RagdataSearchResponse {
+  query: string;
+  by_file: RagdataFileResult[];
+  by_chunk: Array<{
+    file: string;
+    collection: string;
+    score: number;
+    heading: string;
+    text: string;
+  }>;
+}
+
+/** UI 层使用的搜索结果类型 */
 export interface RelatedNote {
   note_path: string;
   note_title: string;
   score: number;
 }
 
-export interface QueryResult {
-  success: boolean;
-  answer?: string;
-  related_notes?: RelatedNote[];
-  token_summary?: Record<string, unknown>;
-  error?: string;
-}
-
-export interface QueryProgress {
-  step: string;
-  progress: number;
-  message: string;
-}
-
-export interface QueryError {
-  step: string;
-  error: string;
-}
-
-export interface QuerySSECallbacks {
-  onProgress?: (data: QueryProgress) => void;
-  onResult?: (data: QueryResult) => void;
-  onError?: (data: QueryError) => void;
-}
-
 /**
- * 提交笔记查询任务
+ * 向 ragdata 发起同步向量检索，返回 RelatedNote[] 供 UI 使用
  */
-export async function queryNote(params: QueryParams): Promise<string> {
-  const res = await fetch(`${API_BASE}/api/query`, {
+export async function searchNotes(
+  query: string,
+  topK: number = 10,
+): Promise<RelatedNote[]> {
+  const res = await fetch(`${RAGDATA_BASE}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(params),
+    body: JSON.stringify({ q: query, top_k: topK }),
   });
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`查询请求失败 (${res.status}): ${text}`);
+    throw new Error(`搜索请求失败 (${res.status}): ${text}`);
   }
 
-  const data = await res.json();
-  return data.task_id;
+  const data: RagdataSearchResponse = await res.json();
+
+  // 将 ragdata by_file 结果映射为 RelatedNote 格式
+  return data.by_file.map(f => ({
+    note_path: f.file,
+    note_title: extractTitle(f.file),
+    score: Math.round(f.max_score * 100),
+  }));
 }
 
-/**
- * 订阅查询任务的 SSE 进度流
- */
-export function subscribeQueryProgress(
-  taskId: string,
-  callbacks: QuerySSECallbacks,
-): () => void {
-  const url = `${API_BASE}/api/query/${taskId}/stream`;
-  const eventSource = new EventSource(url);
-
-  eventSource.addEventListener('progress', (e) => {
-    try {
-      const data: QueryProgress = JSON.parse(e.data);
-      callbacks.onProgress?.(data);
-    } catch { /* ignore */ }
-  });
-
-  eventSource.addEventListener('result', (e) => {
-    try {
-      const data: QueryResult = JSON.parse(e.data);
-      callbacks.onResult?.(data);
-    } catch { /* ignore */ }
-    eventSource.close();
-  });
-
-  eventSource.addEventListener('error', (e) => {
-    if (e instanceof MessageEvent && e.data) {
-      try {
-        const data: QueryError = JSON.parse(e.data);
-        callbacks.onError?.(data);
-      } catch { /* ignore */ }
-    } else {
-      callbacks.onError?.({ step: 'connection', error: '连接中断' });
-    }
-    eventSource.close();
-  });
-
-  return () => eventSource.close();
+function extractTitle(filePath: string): string {
+  const fileName = filePath.split('/').pop() || filePath;
+  return fileName.replace(/\.\w+$/, '');
 }
-

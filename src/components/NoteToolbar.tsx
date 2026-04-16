@@ -66,7 +66,6 @@ export const NoteToolbar: React.FC<NoteToolbarProps> = ({
         enable_image_semantic: options.imageSemantic,
         enable_note_format: options.noteFormat,
         enable_classify_and_save: options.classifySave,
-        enable_embedding: false,
       });
 
       cleanupRef.current = subscribeOrganizeProgress(taskId, {

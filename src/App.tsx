@@ -9,7 +9,7 @@ import { Navbar } from './components/Navbar';
 import { ImageLightbox } from './components/ImageLightbox';
 import { NoteToolbar } from './components/NoteToolbar';
 import { SearchResults } from './components/SearchResults';
-import { queryNote, subscribeQueryProgress, type RelatedNote } from './utils/notesysApi';
+import { searchNotes, type RelatedNote } from './utils/notesysApi';
 import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, ensureTrailingEmptyLines, type MediaType } from './utils/fs';
 
 // Keys for IndexedDB persistence
@@ -316,30 +316,12 @@ function App() {
     if (isSearching) return;
     setIsSearching(true);
     try {
-      const taskId = await queryNote({
-        query,
-        top_k: 10,
-        enable_rewrite: false,
-        enable_synthesis: false,
-      });
-
-      subscribeQueryProgress(taskId, {
-        onResult: (data) => {
-          setIsSearching(false);
-          if (data.success && data.related_notes) {
-            setSearchResults(data.related_notes);
-          } else {
-            setSearchResults([]);
-          }
-        },
-        onError: (data) => {
-          setIsSearching(false);
-          alert(`搜索失败: ${data.error}`);
-        },
-      });
+      const results = await searchNotes(query, 10);
+      setSearchResults(results.length > 0 ? results : []);
     } catch (err) {
-      setIsSearching(false);
       alert(`搜索请求失败: ${err instanceof Error ? err.message : '未知错误'}`);
+    } finally {
+      setIsSearching(false);
     }
   }, [isSearching]);
 

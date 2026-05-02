@@ -11,6 +11,16 @@
 
 这是一个基于 React 和 Milkdown 构建的现代 Markdown 编辑器，支持完整的所见即所得编辑体验、本地媒体预览（图片与视频），并利用 File System Access API 实现直接读取和保存本地文件。
 
+## 功能特性
+
+- 本地 vault 文件夹读取、编辑与保存
+- 渲染模式与源码模式切换
+- 图片、视频、音频分类复制与预览
+- 图片双击灯箱查看
+- 代码块折叠与长命令自动换行
+- NoteSys 笔记整理、图片语义提取与分类存储
+- ragdata 相关笔记检索
+
 ## 技术栈
 
 | 类别 | 技术 |
@@ -18,7 +28,7 @@
 | 语言 | TypeScript |
 | 框架 | React, Vite |
 | Markdown 引擎 | Milkdown |
-| 存储 & API | IndexedDB (idb-keyval), File System Access API |
+| 存储 & API | IndexedDB (idb-keyval), File System Access API, NoteSys, ragdata |
 | 样式 | Tailwind CSS |
 
 ## 快速开始
@@ -48,6 +58,8 @@ cp .env.example .env
 
 - `VITE_NOTESYS_API_BASE`
 - `VITE_RAGDATA_API_BASE`
+
+`.env` 包含本地地址，不要提交到 Git。
 
 ### 本地运行
 
@@ -79,6 +91,16 @@ npm run dev
 ```bash
 npm run build   # 构建生产环境
 npm run preview # 预览生产环境构建
+```
+
+## 发布前检查
+
+```bash
+npm run build
+node test-code-block-line-wrapping-config.js
+node test-code-block-wrap-css.js
+node test-editor-image-css.js
+node --experimental-strip-types test-markdown-media-reference-preservation.js
 ```
 
 ## 贡献指南

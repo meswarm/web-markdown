@@ -1,5 +1,6 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Crepe, CrepeFeature } from '@milkdown/crepe';
+import { EditorView } from '@codemirror/view';
 import { cobalt } from 'thememirror';
 import { mediaNodePlugins, setMediaResolver } from '../plugins/mediaPlugin';
 import { activeLinePlugin } from '../plugins/activeLinePlugin';
@@ -111,6 +112,7 @@ export const Editor = forwardRef<EditorHandle, EditorProps>(({ initialContent, o
       featureConfigs: {
         [CrepeFeature.CodeMirror]: {
           theme: cobalt,
+          extensions: [EditorView.lineWrapping],
         },
         [CrepeFeature.ImageBlock]: {
           proxyDomURL: (url: string) => {

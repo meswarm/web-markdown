@@ -11,6 +11,16 @@
 
 A modern Markdown editor built with React and Milkdown, featuring a full WYSIWYG editing experience, local media previews (images and videos), and direct read/write access to the local file system using the File System Access API.
 
+## Features
+
+- Local vault folder reading, editing, and saving
+- Rendered mode and source mode
+- Classified copy and preview for images, videos, and audio files
+- Double-click image lightbox
+- Collapsible code blocks with long-command wrapping
+- NoteSys note formatting, image semantic extraction, and classified saving
+- ragdata related-note search
+
 ## Tech Stack
 
 | Category | Technology |
@@ -18,7 +28,7 @@ A modern Markdown editor built with React and Milkdown, featuring a full WYSIWYG
 | Language | TypeScript |
 | Framework | React, Vite |
 | Markdown Engine | Milkdown |
-| Storage & API | IndexedDB (idb-keyval), File System Access API |
+| Storage & API | IndexedDB (idb-keyval), File System Access API, NoteSys, ragdata |
 | Styling | Tailwind CSS |
 
 ## Getting Started
@@ -48,6 +58,8 @@ Defaults include:
 
 - `VITE_NOTESYS_API_BASE`
 - `VITE_RAGDATA_API_BASE`
+
+`.env` contains local service URLs and should not be committed.
 
 ### Running locally
 
@@ -79,6 +91,16 @@ Start the app and explore the Markdown editing features in your browser:
 ```bash
 npm run build   # Build for production
 npm run preview # Preview the production build
+```
+
+## Pre-Publish Checks
+
+```bash
+npm run build
+node test-code-block-line-wrapping-config.js
+node test-code-block-wrap-css.js
+node test-editor-image-css.js
+node --experimental-strip-types test-markdown-media-reference-preservation.js
 ```
 
 ## Contributing

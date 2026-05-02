@@ -204,6 +204,7 @@
 
 .milkdown .milkdown-code-block .cm-editor {
   background: #333334 !important;
+  max-width: 100%;
 }
 
 .milkdown .milkdown-code-block .cm-gutters {
@@ -228,10 +229,22 @@
 /* 代码块自动换行 + 字体调整 */
 .milkdown .milkdown-code-block .cm-editor .cm-content {
   white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
   word-break: break-all;
   font-size: 14px;
   line-height: 1.65;
 
+}
+
+.milkdown .milkdown-code-block .cm-editor .cm-scroller {
+  overflow-x: hidden !important;
+  max-width: 100%;
+}
+
+.milkdown .milkdown-code-block .cm-editor .cm-line {
+  white-space: pre-wrap !important;
+  overflow-wrap: anywhere;
+  word-break: break-all;
 }
 
 /* ===== 代码块折叠/展开 ===== */

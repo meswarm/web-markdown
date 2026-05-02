@@ -1,6 +1,6 @@
-![构建状态](https://img.shields.io/github/actions/workflow/status/OWNER/REPO/ci.yml?branch=main&label=构建状态)
-![最新版本](https://img.shields.io/github/v/release/OWNER/REPO?label=最新版本)
-![许可证](https://img.shields.io/github/license/OWNER/REPO?label=许可证)
+![构建状态](https://img.shields.io/github/actions/workflow/status/meswarm/web-markdown/ci.yml?branch=main&label=构建状态)
+![最新版本](https://img.shields.io/github/v/release/meswarm/web-markdown?label=最新版本)
+![许可证](https://img.shields.io/github/license/meswarm/web-markdown?label=许可证)
 
 [![语言-中文](https://img.shields.io/badge/语言-中文-red)](README.md)
 [![Language-English](https://img.shields.io/badge/Language-English-blue)](README_EN.md)
@@ -32,17 +32,22 @@
 
 ```bash
 git clone https://github.com/meswarm/web-markdown.git
-cd REPO
+cd web-markdown
 npm install
 ```
 
 ### 配置
 
-暂无特定的环境变量要求。如果将来需要，可以参考下面的方式：
+项目使用 `.env.example` 提供本地后端地址模板，复制后按环境修改：
 
 ```bash
-# cp .env.example .env
+cp .env.example .env
 ```
+
+默认包含：
+
+- `VITE_NOTESYS_API_BASE`
+- `VITE_RAGDATA_API_BASE`
 
 ### 本地运行
 

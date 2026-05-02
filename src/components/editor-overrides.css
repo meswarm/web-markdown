@@ -334,6 +334,14 @@
 
 /* ===== 编辑器内图片双击提示 ===== */
 .milkdown .ProseMirror img {
+  display: block;
+  max-height: 300px;
+  max-width: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 7px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   cursor: zoom-in;
 }
 

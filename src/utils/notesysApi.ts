@@ -1,11 +1,10 @@
 /**
  * NoteSys + ragData API 服务层
- * - notesys: 笔记整理 API（端口 48002）
- * - ragdata: 向量检索 API（端口 48001）
+ * - notesys: 笔记整理 API（根地址见 VITE_NOTESYS_API_BASE）
+ * - ragdata: 向量检索 API（根地址见 VITE_RAGDATA_API_BASE）
  */
 
-const NOTESYS_BASE = 'http://localhost:48002';
-const RAGDATA_BASE = 'http://localhost:48001';
+import { NOTESYS_API_BASE, RAGDATA_API_BASE } from '../config/backendUrls';
 
 // ======== Organize API (notesys) ========
 
@@ -76,7 +75,7 @@ export function getStepLabel(step: string): string {
  * 提交笔记整理任务
  */
 export async function organizeNote(params: OrganizeParams): Promise<string> {
-  const res = await fetch(`${NOTESYS_BASE}/api/organize`, {
+  const res = await fetch(`${NOTESYS_API_BASE}/api/organize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -99,7 +98,7 @@ export function subscribeOrganizeProgress(
   taskId: string,
   callbacks: SSECallbacks,
 ): () => void {
-  const url = `${NOTESYS_BASE}/api/organize/${taskId}/stream`;
+  const url = `${NOTESYS_API_BASE}/api/organize/${taskId}/stream`;
   const eventSource = new EventSource(url);
 
   eventSource.addEventListener('progress', (e) => {
@@ -174,7 +173,7 @@ export async function searchNotes(
   query: string,
   topK: number = 10,
 ): Promise<RelatedNote[]> {
-  const res = await fetch(`${RAGDATA_BASE}/query`, {
+  const res = await fetch(`${RAGDATA_API_BASE}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ q: query, top_k: topK }),

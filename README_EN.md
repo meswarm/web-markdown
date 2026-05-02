@@ -1,6 +1,6 @@
-![Build Status](https://img.shields.io/github/actions/workflow/status/OWNER/REPO/ci.yml?branch=main)
-![Version](https://img.shields.io/github/v/release/OWNER/REPO)
-![License](https://img.shields.io/github/license/OWNER/REPO)
+![Build Status](https://img.shields.io/github/actions/workflow/status/meswarm/web-markdown/ci.yml?branch=main)
+![Version](https://img.shields.io/github/v/release/meswarm/web-markdown)
+![License](https://img.shields.io/github/license/meswarm/web-markdown)
 
 [![语言-中文](https://img.shields.io/badge/语言-中文-red)](README.md)
 [![Language-English](https://img.shields.io/badge/Language-English-blue)](README_EN.md)
@@ -32,17 +32,22 @@ A modern Markdown editor built with React and Milkdown, featuring a full WYSIWYG
 
 ```bash
 git clone https://github.com/meswarm/web-markdown.git
-cd REPO
+cd web-markdown
 npm install
 ```
 
 ### Configuration
 
-No specific environment variables are required currently. If needed in the future, you can copy the example:
+This project uses `.env.example` as a local backend template. Copy it and adjust the values for your environment:
 
 ```bash
-# cp .env.example .env
+cp .env.example .env
 ```
+
+Defaults include:
+
+- `VITE_NOTESYS_API_BASE`
+- `VITE_RAGDATA_API_BASE`
 
 ### Running locally
 

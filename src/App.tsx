@@ -10,7 +10,7 @@ import { ImageLightbox } from './components/ImageLightbox';
 import { NoteToolbar } from './components/NoteToolbar';
 import { SearchResults } from './components/SearchResults';
 import { searchNotes, type RelatedNote } from './utils/notesysApi';
-import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, ensureTrailingEmptyLines, type MediaType } from './utils/fs';
+import { readFileText, writeFileText, copyMediaToClassifiedDir, detectMediaType, ensureTrailingEmptyLines, preserveMarkdownImageDestinations, type MediaType } from './utils/fs';
 
 // Keys for IndexedDB persistence
 const IDB_ACTIVE_FILE_HANDLE = 'atheneum-active-file-handle';
@@ -275,12 +275,13 @@ function App() {
 
   // --- NoteToolbar: replace editor content ---
   const handleContentReplace = useCallback((newContent: string) => {
-    const content = ensureTrailingEmptyLines(newContent);
+    const preservedContent = preserveMarkdownImageDestinations(fileContent, newContent);
+    const content = ensureTrailingEmptyLines(preservedContent);
     setFileContent(content);
     if (activeFileHandle) {
       writeFileText(activeFileHandle, content);
     }
-  }, [activeFileHandle]);
+  }, [activeFileHandle, fileContent]);
 
   // --- NoteToolbar: navigate to classified file path ---
   const handleNavigateToFile = useCallback(async (notePath: string) => {

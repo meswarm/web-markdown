@@ -1,6 +1,6 @@
 import { useEffect, useRef, useImperativeHandle, forwardRef } from 'react';
 import { Crepe, CrepeFeature } from '@milkdown/crepe';
-import { dracula,cobalt } from 'thememirror';
+import { cobalt } from 'thememirror';
 import { mediaNodePlugins, setMediaResolver } from '../plugins/mediaPlugin';
 import { activeLinePlugin } from '../plugins/activeLinePlugin';
 import { trailingLinesPlugin } from '../plugins/trailingLinesPlugin';

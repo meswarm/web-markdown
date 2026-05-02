@@ -218,7 +218,7 @@ async function resolveAndSetSrc(el: HTMLVideoElement | HTMLAudioElement, src: st
 export const videoBlockView = $view(
   videoBlockSchema.node,
   (): NodeViewConstructor => {
-    return (initialNode, view, getPos) => {
+    return (initialNode) => {
       // Create wrapper
       const wrapper = document.createElement('div');
       wrapper.className = 'milkdown-video-block';
@@ -259,7 +259,7 @@ export const videoBlockView = $view(
 export const audioBlockView = $view(
   audioBlockSchema.node,
   (): NodeViewConstructor => {
-    return (initialNode, view, getPos) => {
+    return (initialNode) => {
       const wrapper = document.createElement('div');
       wrapper.className = 'milkdown-audio-block';
       wrapper.contentEditable = 'false';

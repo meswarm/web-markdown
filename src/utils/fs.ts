@@ -108,6 +108,69 @@ export function ensureTrailingEmptyLines(text: string): string {
   return text + '\n'.repeat(needed);
 }
 
+const MARKDOWN_IMAGE_RE = /!\[((?:\\.|[^\]\\\n])*)]\(\s*(<[^>\n]+>|[^)\s\n]+)([ \t]+(?:"[^"\n]*"|'[^'\n]*'|\([^)\n]*\)))?\s*\)/g;
+
+function isMarkdownFence(line: string): boolean {
+  const trimmed = line.trimStart();
+  return trimmed.startsWith('```') || trimmed.startsWith('~~~');
+}
+
+function forEachMarkdownImageOutsideCode(
+  text: string,
+  onImage: (alt: string, destination: string, title: string | undefined) => void,
+): void {
+  let inFence = false;
+
+  for (const line of text.split('\n')) {
+    if (isMarkdownFence(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
+
+    for (const match of line.matchAll(MARKDOWN_IMAGE_RE)) {
+      onImage(match[1], match[2], match[3]);
+    }
+  }
+}
+
+function replaceMarkdownImagesOutsideCode(
+  text: string,
+  replaceImage: (alt: string, destination: string, title: string | undefined) => string,
+): string {
+  let inFence = false;
+
+  return text.split('\n').map((line) => {
+    if (isMarkdownFence(line)) {
+      inFence = !inFence;
+      return line;
+    }
+    if (inFence) return line;
+
+    return line.replace(MARKDOWN_IMAGE_RE, (_match, alt: string, destination: string, title?: string) => {
+      return replaceImage(alt, destination, title);
+    });
+  }).join('\n');
+}
+
+export function preserveMarkdownImageDestinations(originalText: string, processedText: string): string {
+  const originalDestinations: string[] = [];
+
+  forEachMarkdownImageOutsideCode(originalText, (_alt, destination) => {
+    originalDestinations.push(destination);
+  });
+
+  if (originalDestinations.length === 0) return processedText;
+
+  let imageIndex = 0;
+
+  return replaceMarkdownImagesOutsideCode(processedText, (alt, destination, title) => {
+    const preservedDestination = originalDestinations[imageIndex] ?? destination;
+    imageIndex += 1;
+    return `![${alt}](${preservedDestination}${title ?? ''})`;
+  });
+}
+
 export async function copyDirectory(srcHandle: FileSystemDirectoryHandle, destHandle: FileSystemDirectoryHandle): Promise<void> {
   // @ts-ignore
   for await (const entry of srcHandle.values()) {
